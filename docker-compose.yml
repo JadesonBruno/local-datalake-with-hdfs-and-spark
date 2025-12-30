@@ -1,0 +1,49 @@
+name: local-data-lake
+
+services:
+  data-lake-master:
+    container_name: master
+    build:
+      dockerfile: Dockerfile
+      context: .
+    image: local-data-lake-image
+    entrypoint: ["./entrypoint.sh", "master"]
+    volumes:
+      - ./data:${SPARK_HOME}/data
+      - ./jobs:${SPARK_HOME}/apps
+      - data-lake-logs:${SPARK_HOME}/data-lake-events
+    env_file:
+      - .env
+    ports:
+      - "9091:8080"
+      - "9871:9870"
+      - "7071:7077"
+      - "8081:8088"
+    
+  data-lake-history-server:
+    container_name: history-server
+    image: local-data-lake-image
+    entrypoint: ["./entrypoint.sh", "history"]
+    depends_on:
+      - data-lake-master
+    env_file:
+      - .env
+    volumes:
+      - data-lake-logs:${SPARK_HOME}/data-lake-events
+    ports:
+      - "18081:18080"
+    
+  data-lake-worker:
+    image: local-data-lake-image
+    entrypoint: ["./entrypoint.sh", "worker"]
+    depends_on:
+      - data-lake-master
+    env_file:
+      - .env
+    volumes:
+      - ./data:${SPARK_HOME}/data
+      - ./jobs:${SPARK_HOME}/apps
+      - data-lake-logs:${SPARK_HOME}/data-lake-events
+
+volumes:
+  data-lake-logs:
